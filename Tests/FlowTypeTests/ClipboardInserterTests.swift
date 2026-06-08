@@ -38,6 +38,16 @@ final class ClipboardInserterTests: XCTestCase {
         XCTAssertEqual(pb.current, "文本")
     }
 
+    func test_insert_with_restore_but_empty_original_keeps_text() {
+        let pb = SpyPasteboard() // current is nil
+        let kb = SpyKeyboard()
+        let inserter = ClipboardInserter(pasteboard: pb, keyboard: kb, restoreClipboard: true, delay: {})
+        inserter.insert("文本")
+        XCTAssertEqual(kb.pasteCount, 1)
+        XCTAssertEqual(pb.writes, ["文本"])
+        XCTAssertEqual(pb.current, "文本")
+    }
+
     func test_empty_text_does_nothing() {
         let pb = SpyPasteboard(); pb.current = "原有"
         let kb = SpyKeyboard()
