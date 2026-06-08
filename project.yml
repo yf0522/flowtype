@@ -16,14 +16,13 @@ targets:
     platform: macOS
     sources:
       - Sources
-    info:
-      path: Sources/App/Info.plist
     entitlements:
       path: Sources/App/FlowType.entitlements
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.flowtype.app
-        INFOPLIST_KEY_LSUIElement: YES
+        INFOPLIST_FILE: Sources/App/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
   FlowTypeTests:
     type: bundle.unit-test
     platform: macOS
