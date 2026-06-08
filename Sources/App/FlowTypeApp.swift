@@ -9,7 +9,6 @@ struct FlowTypeApp: App {
     var body: some Scene {
         MenuBarExtra("FlowType", systemImage: "mic.fill") {
             MenuBarContent().environmentObject(coordinator)
-                .task { coordinator.start() }
         }
         .onChange(of: coordinator.viewModel.isVisible) { _, visible in
             visible ? showHUD() : hud?.orderOut(nil)

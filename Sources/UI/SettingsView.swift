@@ -25,7 +25,7 @@ struct SettingsView: View {
                 Text("中文（普通话）").tag("zh-CN")
                 Text("English (US)").tag("en-US")
             }
-            Toggle("开机自启动", isOn: $settings.launchAtLogin)
+            Toggle("开机自启动（即将推出）", isOn: $settings.launchAtLogin).disabled(true)
             Text("按住说话：fn（地球键）  ·  切换式：⌥Space").foregroundStyle(.secondary).font(.caption)
         }.padding()
     }
@@ -36,7 +36,8 @@ struct SettingsView: View {
                 Text("智能粘贴").tag(InsertionMethod.smartPaste)
                 Text("模拟键入").tag(InsertionMethod.simulateTyping)
                 Text("辅助功能 API").tag(InsertionMethod.accessibility)
-            }
+            }.disabled(true)
+            Text("第一版仅支持智能粘贴。").foregroundStyle(.secondary).font(.caption)
             Toggle("粘贴后恢复剪贴板", isOn: $settings.restoreClipboard)
         }.padding()
     }

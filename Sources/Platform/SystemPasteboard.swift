@@ -4,12 +4,16 @@ import CoreGraphics
 /// PasteboardAccess 的系统实现。
 struct SystemPasteboard: PasteboardAccess {
     func readString() -> String? {
-        NSPasteboard.general.string(forType: .string)
+        if Thread.isMainThread { return NSPasteboard.general.string(forType: .string) }
+        return DispatchQueue.main.sync { NSPasteboard.general.string(forType: .string) }
     }
     func writeString(_ s: String) {
-        let pb = NSPasteboard.general
-        pb.clearContents()
-        pb.setString(s, forType: .string)
+        let work = {
+            let pb = NSPasteboard.general
+            pb.clearContents()
+            pb.setString(s, forType: .string)
+        }
+        if Thread.isMainThread { work() } else { DispatchQueue.main.sync(execute: work) }
     }
 }
 

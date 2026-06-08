@@ -18,6 +18,7 @@ final class CGEventHotkeyMonitor: @unchecked Sendable {
     }
 
     func start() {
+        guard tap == nil else { return }
         let mask = (1 << CGEventType.keyDown.rawValue) |
                    (1 << CGEventType.keyUp.rawValue) |
                    (1 << CGEventType.flagsChanged.rawValue)

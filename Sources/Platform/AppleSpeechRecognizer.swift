@@ -56,6 +56,8 @@ final class AppleSpeechRecognizer: NSObject, SpeechRecognizing, @unchecked Senda
 
     func stop() -> String {
         session.stopRunning()
+        session.inputs.forEach { session.removeInput($0) }
+        session.outputs.forEach { session.removeOutput($0) }
         request?.endAudio()
         task?.finish()
         request = nil; task = nil

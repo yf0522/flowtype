@@ -34,6 +34,7 @@ final class AppCoordinator: ObservableObject {
                               delay: { Thread.sleep(forTimeInterval: 0.15) })
         }
         configure()
+        start()
     }
 
     private func configure() {
@@ -59,12 +60,15 @@ final class AppCoordinator: ObservableObject {
             let text = recognizer.stop()
             viewModel.phase = .inserting
             let inserter = inserterFactory(store.settings)
-            DispatchQueue.global(qos: .userInitiated).async {
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
                 inserter.insert(text)
+                DispatchQueue.main.async {
+                    guard let self else { return }
+                    self.viewModel.phase = .done
+                    self.machine.insertionFinished()
+                    self.scheduleHide()
+                }
             }
-            viewModel.phase = .done
-            machine.insertionFinished()
-            scheduleHide()
         case .none:
             break
         }
