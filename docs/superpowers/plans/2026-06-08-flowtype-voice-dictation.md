@@ -1374,3 +1374,13 @@ git add -A && git commit -m "docs: 真机端到端验收通过记录" --allow-em
 4. **HUD 不抢焦点**：用 `.nonactivatingPanel` + `orderFrontRegardless()`，避免改变目标输入框的 caret 焦点。
 5. **改键 UI 延后**：Task 10 设置页第一版只「展示」当前热键文本，不含交互式录制改键控件（捕获按键组合的 UI 较繁琐）。默认 fn / ⌥Space 已可用；改键录制作为 fast-follow。若联调发现默认键冲突，先在代码里改 `AppSettings.default`。
 6. **录音中设备变更**：spec §4 提到的「录音中默认输入设备改变则拆掉重来」第一版未实现（v1 录音时段短，风险低）。如真机验收发现问题再补 `AudioInputDeviceObserver`。
+
+## 最终复审后已知限制（MVP 验收时知悉，留待后续迭代）
+
+最终整体复审修掉了 4 个 Critical（热键启动注册/剪贴板主线程/采集泄漏/状态竞争，见 commit `b09d839`）。以下 Important/Minor 项有意延后，不阻断 MVP：
+
+- **I4 stop() 返回草稿转写而非最终结果**：`AppleSpeechRecognizer.stop()` 同步返回当前 `lastText`，而 `SFSpeechRecognitionTask` 的最终（isFinal）结果稍后才异步到达。短句本地识别下 partial≈final，长句可能插入的是草稿。后续改为等待 `isFinal` 或用 continuation。
+- **I5 fn 键用 `.listenOnly`**：无法拦截系统对 fn 的默认行为（emoji/Globe 选择器）。按住 fn 说话时可能弹出 emoji 选择器。后续改用 `.defaultTap` 主动 tap 并在匹配热键时返回 nil 消费事件。
+- **设置需重启生效**：设置窗口与协调器各持有独立 `SettingsStore`，改语言/触发键已持久化到磁盘但需重启 App 才被运行中的协调器读到。后续把协调器的 store 通过环境共享。
+- **launchAtLogin / 非智能粘贴插入方式**：UI 已禁用并标注（未接 `SMAppService`、仅实现 smartPaste），待实现后再启用。
+- **权限授予后需重启**：协调器在 `init` 注册 CGEventTap，若此时尚无输入监控权限会静默失败；用户授权后需重启 App。后续可加权限变更监听重注册。
