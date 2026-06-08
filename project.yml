@@ -1,0 +1,45 @@
+name: FlowType
+options:
+  bundleIdPrefix: com.flowtype
+  deploymentTarget:
+    macOS: "14.0"
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+targets:
+  FlowType:
+    type: application
+    platform: macOS
+    sources:
+      - Sources
+    info:
+      path: Sources/App/Info.plist
+    entitlements:
+      path: Sources/App/FlowType.entitlements
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.flowtype.app
+        INFOPLIST_KEY_LSUIElement: YES
+  FlowTypeTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - Tests
+    dependencies:
+      - target: FlowType
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.flowtype.tests
+schemes:
+  FlowType:
+    build:
+      targets:
+        FlowType: all
+        FlowTypeTests: [test]
+    test:
+      targets:
+        - FlowTypeTests
