@@ -20,6 +20,7 @@ final class AppCoordinator: ObservableObject {
     private let recognizer: SpeechRecognizing
     private let hotkeys: CGEventHotkeyMonitor
     private let inserterFactory: (AppSettings) -> ClipboardInserter
+    private var hideTask: DispatchWorkItem?
 
     init(store: SettingsStore = SettingsStore(),
          recognizer: SpeechRecognizing = AppleSpeechRecognizer()) {
@@ -57,14 +58,22 @@ final class AppCoordinator: ObservableObject {
         case .stopAndInsert:
             let text = recognizer.stop()
             viewModel.phase = .inserting
-            inserterFactory(store.settings).insert(text)
+            let inserter = inserterFactory(store.settings)
+            DispatchQueue.global(qos: .userInitiated).async {
+                inserter.insert(text)
+            }
             viewModel.phase = .done
             machine.insertionFinished()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
-                self?.viewModel.isVisible = false
-            }
+            scheduleHide()
         case .none:
             break
         }
+    }
+
+    private func scheduleHide() {
+        hideTask?.cancel()
+        let item = DispatchWorkItem { [weak self] in self?.viewModel.isVisible = false }
+        hideTask = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4, execute: item)
     }
 }
