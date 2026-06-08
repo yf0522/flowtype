@@ -6,6 +6,7 @@ import Speech
 enum PermissionState: Equatable { case granted, denied, notDetermined }
 
 /// 查询/请求四项授权：麦克风、语音识别、辅助功能、输入监控。
+@MainActor
 final class PermissionManager {
     var microphone: PermissionState {
         switch AVCaptureDevice.authorizationStatus(for: .audio) {

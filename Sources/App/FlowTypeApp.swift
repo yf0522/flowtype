@@ -14,6 +14,13 @@ struct FlowTypeApp: App {
         .onChange(of: coordinator.viewModel.isVisible) { _, visible in
             visible ? showHUD() : hud?.orderOut(nil)
         }
+
+        Settings {
+            SettingsView(store: SettingsStore())
+        }
+        Window("欢迎使用 FlowType", id: "permissions") {
+            PermissionsView()
+        }
     }
 
     private func showHUD() {
