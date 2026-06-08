@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlowType · 语音听写 原型</title>
+<style>
+  :root{
+    --bg:#0c0d12; --panel:#16171f; --panel2:#1d1f29; --line:#2a2c38;
+    --txt:#e8e9ee; --dim:#9498a6; --faint:#646878;
+    --accent:#7c6cff; --accent2:#a855f7; --green:#34d399; --red:#f87171;
+    --radius:16px; --shadow:0 20px 60px rgba(0,0,0,.5);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"PingFang SC","Segoe UI",sans-serif;background:
+    radial-gradient(1200px 600px at 80% -10%,#1a1530 0,transparent 60%),
+    radial-gradient(900px 500px at 0% 100%,#11202b 0,transparent 55%),
+    var(--bg);color:var(--txt);line-height:1.6;padding:48px 24px 96px}
+  .wrap{max-width:1080px;margin:0 auto}
+  h1{font-size:30px;font-weight:700;letter-spacing:-.5px}
+  h1 .v{font-size:13px;color:var(--faint);font-weight:500;margin-left:10px}
+  .sub{color:var(--dim);margin-top:8px;font-size:15px;max-width:680px}
+  .tag{display:inline-block;font-size:12px;color:var(--accent);background:rgba(124,108,255,.12);
+    border:1px solid rgba(124,108,255,.3);padding:3px 10px;border-radius:999px;margin-right:6px;margin-top:14px}
+  section{margin-top:56px}
+  .shdr{display:flex;align-items:baseline;gap:12px;margin-bottom:18px}
+  .shdr h2{font-size:19px;font-weight:650}
+  .shdr .n{font-size:12px;color:var(--faint);font-variant-numeric:tabular-nums;
+    border:1px solid var(--line);border-radius:6px;padding:1px 7px}
+  .shdr p{color:var(--dim);font-size:13px}
+  .grid{display:grid;gap:20px}
+  .g2{grid-template-columns:1fr 1fr}
+  @media(max-width:820px){.g2{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px;position:relative}
+  .caption{font-size:12px;color:var(--faint);margin-top:12px;text-align:center}
+
+  /* mock desktop / editor */
+  .stage{background:linear-gradient(160deg,#23252f,#15161d);border:1px solid var(--line);
+    border-radius:14px;padding:0;overflow:hidden;position:relative;min-height:300px}
+  .winbar{height:34px;background:#101119;border-bottom:1px solid var(--line);display:flex;
+    align-items:center;padding:0 12px;gap:7px}
+  .dot{width:11px;height:11px;border-radius:50%}
+  .dot.r{background:#ff5f57}.dot.y{background:#febc2e}.dot.g{background:#28c840}
+  .wintitle{color:var(--faint);font-size:12px;margin-left:8px}
+  .editor{padding:22px 24px;font-size:15px;color:#d6d8e2;font-family:ui-monospace,Menlo,monospace}
+  .editor .typed{color:#d6d8e2}
+  .editor .fresh{color:#fff;background:rgba(124,108,255,.22);border-radius:3px;padding:0 1px}
+  .caret{display:inline-block;width:2px;height:18px;background:var(--accent);
+    vertical-align:-3px;margin-left:1px;animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+
+  /* recording pill */
+  .pill{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);
+    background:rgba(20,21,29,.92);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.08);
+    border-radius:18px;box-shadow:var(--shadow);padding:13px 18px;display:flex;align-items:center;
+    gap:14px;min-width:330px}
+  .pill .mic{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));
+    display:flex;align-items:center;justify-content:center;flex:0 0 auto;
+    box-shadow:0 0 0 0 rgba(124,108,255,.5);animation:pulse 1.6s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(124,108,255,.5)}70%{box-shadow:0 0 0 12px rgba(124,108,255,0)}100%{box-shadow:0 0 0 0 rgba(124,108,255,0)}}
+  .pill .mic svg{width:17px;height:17px;fill:#fff}
+  .wave{display:flex;align-items:center;gap:3px;height:26px;flex:0 0 auto}
+  .wave i{width:3px;border-radius:2px;background:var(--accent);animation:bar 1s ease-in-out infinite}
+  .wave i:nth-child(1){animation-delay:0s}.wave i:nth-child(2){animation-delay:.12s}
+  .wave i:nth-child(3){animation-delay:.24s}.wave i:nth-child(4){animation-delay:.36s}
+  .wave i:nth-child(5){animation-delay:.18s}.wave i:nth-child(6){animation-delay:.30s}
+  .wave i:nth-child(7){animation-delay:.06s}
+  @keyframes bar{0%,100%{height:6px}50%{height:24px}}
+  .pill .live{flex:1;min-width:0}
+  .pill .live .t{font-size:14px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pill .live .t .partial{color:var(--faint)}
+  .pill .live .hint{font-size:11px;color:var(--faint);margin-top:1px}
+  .pill .kbd{font-size:11px;color:var(--dim);border:1px solid var(--line);border-radius:5px;padding:1px 6px;flex:0 0 auto}
+
+  .pill.done .mic{background:var(--green);animation:none;box-shadow:none}
+  .pill.proc .mic{background:#3a3d4d;animation:none;box-shadow:none}
+
+  /* menu bar dropdown */
+  .menubar{background:rgba(18,19,27,.96);border:1px solid var(--line);border-radius:12px;
+    box-shadow:var(--shadow);width:280px;overflow:hidden}
+  .mb-head{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+  .mb-head .ic{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+    display:flex;align-items:center;justify-content:center}
+  .mb-head .ic svg{width:15px;height:15px;fill:#fff}
+  .mb-head .nm{font-weight:600;font-size:14px}
+  .mb-head .st{font-size:11px;color:var(--green)}
+  .mi{padding:10px 16px;font-size:13px;display:flex;justify-content:space-between;align-items:center;cursor:default}
+  .mi:hover{background:var(--panel2)}
+  .mi .k{color:var(--faint);font-size:11px}
+  .mi.sep{border-top:1px solid var(--line)}
+  .mi .sw{width:32px;height:18px;border-radius:999px;background:var(--accent);position:relative}
+  .mi .sw::after{content:"";position:absolute;width:14px;height:14px;border-radius:50%;background:#fff;top:2px;right:2px}
+
+  /* settings window */
+  .swin{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+  .swin .sb{display:grid;grid-template-columns:150px 1fr}
+  .nav{background:#101119;border-right:1px solid var(--line);padding:10px}
+  .nav .ni{padding:8px 12px;border-radius:8px;font-size:13px;color:var(--dim);display:flex;gap:9px;align-items:center}
+  .nav .ni.on{background:var(--panel2);color:var(--txt)}
+  .body{padding:20px 22px}
+  .row{display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid var(--line)}
+  .row:last-child{border:none}
+  .row .lbl{font-size:13px}
+  .row .lbl small{display:block;color:var(--faint);font-size:11px;margin-top:2px}
+  .kbd2{font-size:12px;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:3px 9px;color:#fff}
+  .seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .seg span{font-size:12px;padding:5px 11px;color:var(--dim)}
+  .seg span.on{background:var(--accent);color:#fff}
+  .sel{font-size:12px;background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:5px 10px;color:var(--txt)}
+  .sw2{width:36px;height:20px;border-radius:999px;background:var(--accent);position:relative;flex:0 0 auto}
+  .sw2.off{background:#3a3d4d}
+  .sw2::after{content:"";position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;top:2px;right:2px}
+  .sw2.off::after{right:auto;left:2px}
+
+  /* permission cards */
+  .perm{display:flex;gap:13px;align-items:flex-start;padding:14px 0;border-bottom:1px solid var(--line)}
+  .perm:last-child{border:none}
+  .perm .pi{width:34px;height:34px;border-radius:9px;background:var(--panel2);display:flex;align-items:center;justify-content:center;flex:0 0 auto;font-size:17px}
+  .perm .pt{flex:1}
+  .perm .pt b{font-size:13px}.perm .pt small{display:block;color:var(--faint);font-size:11px;margin-top:2px}
+  .perm .pb{font-size:11px;border-radius:7px;padding:5px 12px;flex:0 0 auto}
+  .pb.go{background:var(--accent);color:#fff}
+  .pb.ok{background:rgba(52,211,153,.15);color:var(--green);border:1px solid rgba(52,211,153,.3)}
+
+  /* flow steps */
+  .flow{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch}
+  .step{flex:1;min-width:150px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px}
+  .step .num{font-size:11px;color:var(--accent);font-weight:700}
+  .step b{font-size:13px;display:block;margin:4px 0 4px}
+  .step small{color:var(--faint);font-size:11.5px}
+  .arrow{align-self:center;color:var(--faint)}
+  ul.notes{list-style:none;margin-top:8px}
+  ul.notes li{font-size:13px;color:var(--dim);padding:5px 0 5px 18px;position:relative}
+  ul.notes li::before{content:"›";position:absolute;left:2px;color:var(--accent)}
+  .arch{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;color:var(--dim);
+    background:#0e0f15;border:1px solid var(--line);border-radius:12px;padding:18px;white-space:pre;overflow-x:auto;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>FlowType <span class="v">语音听写 · 交互原型 v0.1（工作名，可改）</span></h1>
+    <p class="sub">按住热键说话 → 本地实时转写 → 文字直接落在当前输入框的光标处。完全离线，基于 Apple Speech，支持中文。</p>
+    <div>
+      <span class="tag">Apple 本地 STT</span>
+      <span class="tag">插入光标处</span>
+      <span class="tag">按住说话 + 开关切换</span>
+      <span class="tag">菜单栏常驻</span>
+    </div>
+  </header>
+
+  <!-- 1. 核心：录音浮窗 + 插入演示 -->
+  <section>
+    <div class="shdr"><span class="n">01</span><h2>核心交互：录音浮窗 + 插入到光标</h2><p>这是用户 90% 时间看到的界面</p></div>
+    <div class="card">
+      <div class="stage">
+        <div class="winbar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="wintitle">备忘录 — 周报</span></div>
+        <div class="editor">
+          <div class="typed">本周完成了语音听写模块的<span class="fresh">技术选型，确定采用苹果本地识别方案</span><span class="caret"></span></div>
+          <div style="height:8px"></div>
+          <div style="color:var(--faint)">下周计划：</div>
+        </div>
+        <!-- 录音中状态 -->
+        <div class="pill">
+          <div class="mic"><svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-3.1A7 7 0 0 0 19 11h-2z"/></svg></div>
+          <div class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="live">
+            <div class="t">确定采用苹果本地识别方案<span class="partial"> 下周开始接入…</span></div>
+            <div class="hint">松开 fn 插入 · 实时转写中</div>
+          </div>
+          <div class="kbd">fn</div>
+        </div>
+      </div>
+      <div class="caption">录音中：浮窗显示电平波形 + 实时部分转写（灰色为未定稿）。松开热键即把文字插入光标处并消失。</div>
+    </div>
+
+    <div class="grid g2" style="margin-top:20px">
+      <div class="card">
+        <div class="stage" style="min-height:150px">
+          <div class="pill proc" style="position:static;transform:none;margin:50px auto 0;left:auto">
+            <div class="mic"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10h-2a8 8 0 1 1-8-8V2z"/></svg></div>
+            <div class="live"><div class="t">整理标点中…</div><div class="hint">本地处理 · 通常 &lt;200ms</div></div>
+          </div>
+        </div>
+        <div class="caption">处理态（可选）：松开后做轻量标点/顺滑处理</div>
+      </div>
+      <div class="card">
+        <div class="stage" style="min-height:150px">
+          <div class="pill done" style="position:static;transform:none;margin:50px auto 0;left:auto;min-width:280px">
+            <div class="mic"><svg viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg></div>
+            <div class="live"><div class="t">已插入 18 字</div><div class="hint">0.3s 后自动隐藏</div></div>
+          </div>
+        </div>
+        <div class="caption">完成态：短暂确认后浮窗淡出</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. 菜单栏 -->
+  <section>
+    <div class="shdr"><span class="n">02</span><h2>菜单栏入口</h2><p>常驻状态栏，点击图标弹出</p></div>
+    <div class="grid g2">
+      <div class="card" style="display:flex;justify-content:center">
+        <div class="menubar">
+          <div class="mb-head">
+            <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-3.1A7 7 0 0 0 19 11h-2z"/></svg></div>
+            <div><div class="nm">FlowType</div><div class="st">● 就绪 · 中文（普通话）</div></div>
+          </div>
+          <div class="mi"><span>开始听写</span><span class="k">按住 fn</span></div>
+          <div class="mi"><span>切换式听写</span><span class="k">⌥ Space</span></div>
+          <div class="mi sep"><span>听写语言</span><span class="k">中文 ›</span></div>
+          <div class="mi"><span>AI 整理标点</span><span class="sw"></span></div>
+          <div class="mi sep"><span>设置…</span><span class="k">⌘,</span></div>
+          <div class="mi"><span>退出</span><span class="k">⌘Q</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <b style="font-size:14px">设计要点</b>
+        <ul class="notes">
+          <li>无主窗口、无 Dock 图标，纯菜单栏 App（LSUIElement），不打扰</li>
+          <li>图标颜色反映状态：灰=空闲，紫=录音，红=权限缺失</li>
+          <li>两个触发方式都在这里可见、可改键</li>
+          <li>语言一键切换（中/英/…），切换即时生效</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. 设置 -->
+  <section>
+    <div class="shdr"><span class="n">03</span><h2>设置窗口</h2><p>热键、语言、触发模式、插入方式、隐私</p></div>
+    <div class="card">
+      <div class="swin">
+        <div class="sb">
+          <div class="nav">
+            <div class="ni on">⌨️ 通用</div>
+            <div class="ni">🎙️ 听写</div>
+            <div class="ni">📥 插入</div>
+            <div class="ni">🔒 隐私</div>
+            <div class="ni">ℹ️ 关于</div>
+          </div>
+          <div class="body">
+            <div class="row"><div class="lbl">按住说话热键<small>按住时录音，松开插入</small></div><span class="kbd2">fn（地球键）</span></div>
+            <div class="row"><div class="lbl">切换式听写热键<small>按一下开始，再按停止</small></div><span class="kbd2">⌥ Space</span></div>
+            <div class="row"><div class="lbl">听写语言</div><select class="sel"><option>中文（普通话）</option><option>English (US)</option><option>中英混合</option></select></div>
+            <div class="row"><div class="lbl">开机自启动</div><span class="sw2"></span></div>
+            <div class="row"><div class="lbl">录音时播放提示音</div><span class="sw2 off"></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="caption">「通用」页。其余分页：听写（部分结果/任务提示词）、插入（方式与回退）、隐私（本地开关）</div>
+    </div>
+
+    <div class="grid g2" style="margin-top:20px">
+      <div class="card">
+        <b style="font-size:14px">📥 插入页（关键）</b>
+        <div style="margin-top:10px">
+          <div class="row"><div class="lbl">插入方式<small>决定文字怎么落到光标处</small></div>
+            <div class="seg"><span class="on">智能粘贴</span><span>模拟键入</span><span>辅助功能 API</span></div></div>
+          <div class="row"><div class="lbl">粘贴后恢复剪贴板<small>不污染你原来复制的内容</small></div><span class="sw2"></span></div>
+          <div class="row"><div class="lbl">句末自动加空格/换行</div><span class="sw2 off"></span></div>
+        </div>
+      </div>
+      <div class="card">
+        <b style="font-size:14px">🔒 隐私页</b>
+        <div style="margin-top:10px">
+          <div class="row"><div class="lbl">强制本地识别<small>关闭则不可用，绝不上云</small></div><span class="sw2"></span></div>
+          <div class="row"><div class="lbl">保存转写历史</div><span class="sw2 off"></span></div>
+          <div class="row"><div class="lbl">用量统计上报</div><span class="sw2 off"></span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. 权限引导 -->
+  <section>
+    <div class="shdr"><span class="n">04</span><h2>首次启动 · 权限引导</h2><p>系统级听写工具需要 4 项授权</p></div>
+    <div class="card" style="max-width:560px;margin:0 auto">
+      <b style="font-size:15px">让 FlowType 开始工作</b>
+      <p style="color:var(--dim);font-size:13px;margin:4px 0 8px">逐项授权后即可使用，全部用于本地处理。</p>
+      <div class="perm"><div class="pi">🎤</div><div class="pt"><b>麦克风</b><small>采集你的语音</small></div><button class="pb ok">已授权</button></div>
+      <div class="perm"><div class="pi">🗣️</div><div class="pt"><b>语音识别</b><small>调用 Apple 本地识别模型</small></div><button class="pb ok">已授权</button></div>
+      <div class="perm"><div class="pi">♿️</div><div class="pt"><b>辅助功能</b><small>把文字插入其它 App 的光标处</small></div><button class="pb go">去开启</button></div>
+      <div class="perm"><div class="pi">⌨️</div><div class="pt"><b>输入监控</b><small>监听全局热键（fn / 快捷键）</small></div><button class="pb go">去开启</button></div>
+    </div>
+  </section>
+
+  <!-- 5. 流程 + 架构 -->
+  <section>
+    <div class="shdr"><span class="n">05</span><h2>一次听写的完整流程</h2></div>
+    <div class="flow">
+      <div class="step"><div class="num">1</div><b>按下热键</b><small>全局监听捕获 fn / 快捷键，弹出浮窗</small></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="num">2</div><b>采集 + 识别</b><small>AVCaptureSession 取音频 → SFSpeechRecognizer 本地流式转写</small></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="num">3</div><b>实时回显</b><small>浮窗显示部分结果（已定稿/未定稿分段）</small></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="num">4</div><b>松开/再按</b><small>停止识别，拿到最终文本，可选标点整理</small></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="num">5</div><b>插入光标</b><small>智能粘贴 / 模拟键入到当前焦点输入框</small></div>
+    </div>
+
+    <div class="card" style="margin-top:22px">
+      <b style="font-size:14px">推荐架构（原生 Swift，技术栈待你定）</b>
+      <div class="arch" style="margin-top:12px">┌─ 菜单栏 App (SwiftUI, LSUIElement) ────────────────────┐
+│                                                        │
+│  HotkeyManager      录音浮窗 (Panel/NSWindow)          │
+│  全局热键监听         实时波形 + 部分转写回显             │
+│  (CGEventTap)              ▲                            │
+│        │                  │ 状态                        │
+│        ▼                  │                            │
+│  VoiceRecorder ───────────┘                            │
+│  AVCaptureSession → SFSpeechRecognizer                 │
+│  (requiresOnDeviceRecognition = true, zh-CN)           │
+│        │ 最终文本                                       │
+│        ▼                                               │
+│  TextInserter                                          │
+│  智能粘贴 (NSPasteboard + ⌘V) / CGEvent 键入 / AX API  │
+└────────────────────────────────────────────────────────┘
+   依赖系统授权：麦克风 · 语音识别 · 辅助功能 · 输入监控</div>
+      <ul class="notes" style="margin-top:14px">
+        <li><b>VoiceRecorder</b> 直接复用 Muxy 同款方案（已验证可行）：本地、免费、支持中文</li>
+        <li><b>TextInserter</b> 默认「智能粘贴」：暂存剪贴板 → 写入文本 → 模拟 ⌘V → 恢复剪贴板（最通用可靠）</li>
+        <li><b>HotkeyManager</b> 用 CGEventTap 才能监听 fn 键的按住/松开；普通快捷键也走它</li>
+        <li>三个核心模块边界清晰、可独立测试，符合后续 TDD 推进</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="shdr"><span class="n">06</span><h2>第一版范围（YAGNI）</h2></div>
+    <div class="grid g2">
+      <div class="card"><b style="font-size:14px;color:var(--green)">✓ 做</b>
+        <ul class="notes">
+          <li>菜单栏常驻 + 录音浮窗</li>
+          <li>按住说话 + 开关切换两种触发</li>
+          <li>Apple 本地中文/英文识别 + 实时回显</li>
+          <li>智能粘贴插入到光标处</li>
+          <li>设置：热键 / 语言 / 插入方式 / 隐私</li>
+          <li>权限引导</li>
+        </ul>
+      </div>
+      <div class="card"><b style="font-size:14px;color:var(--faint)">✗ 暂不做（以后再说）</b>
+        <ul class="notes">
+          <li>云端 Whisper / 通义切换</li>
+          <li>AI 重写润色 / 自定义提示词</li>
+          <li>转写历史库与搜索</li>
+          <li>词典 / 专有名词纠正</li>
+          <li>iOS 端</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <p style="text-align:center;color:var(--faint);font-size:12px;margin-top:48px">FlowType 原型 v0.1 · 仅用于设计评审，非真实功能</p>
+</div>
+</body>
+</html>
