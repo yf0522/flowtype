@@ -40,6 +40,7 @@ final class AppCoordinator: ObservableObject {
         }
         configure()
         start()
+        maybeShowOnboarding()
     }
 
     private func configure() {
@@ -66,6 +67,8 @@ final class AppCoordinator: ObservableObject {
             input = .pressUp(quickTap: quick)
         case .toggle:
             input = .toggle
+        case .confirm:
+            input = .confirm
         }
         flog("coordinator.handle: event=\(event) → input=\(input)")
         apply(machine.handle(input))
@@ -152,5 +155,49 @@ final class AppCoordinator: ObservableObject {
         panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary]
         panel.contentView = NSHostingView(rootView: RecordingHUD(vm: viewModel))
         return panel
+    }
+
+    // MARK: - 设置 / 权限窗口（由协调器直接管理，菜单按钮可靠触发）
+
+    private var settingsWindow: NSWindow?
+    private var onboardingWindow: NSWindow?
+
+    func showSettingsWindow() {
+        if settingsWindow == nil {
+            let hosting = NSHostingController(rootView: SettingsView(store: store))
+            let w = NSWindow(contentViewController: hosting)
+            w.title = "FlowType 设置"
+            w.styleMask = [.titled, .closable]
+            w.isReleasedWhenClosed = false
+            w.center()
+            settingsWindow = w
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        settingsWindow?.makeKeyAndOrderFront(nil)
+    }
+
+    func showOnboardingWindow() {
+        if onboardingWindow == nil {
+            let hosting = NSHostingController(rootView: PermissionsView())
+            let w = NSWindow(contentViewController: hosting)
+            w.title = "欢迎使用 FlowType"
+            w.styleMask = [.titled, .closable]
+            w.isReleasedWhenClosed = false
+            w.center()
+            onboardingWindow = w
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        onboardingWindow?.makeKeyAndOrderFront(nil)
+    }
+
+    /// 首次/未授全时自动弹权限引导。
+    func maybeShowOnboarding() {
+        let pm = PermissionManager()
+        let allGranted = pm.microphone == .granted && pm.speech == .granted && pm.accessibility == .granted
+        if !allGranted {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                self?.showOnboardingWindow()
+            }
+        }
     }
 }

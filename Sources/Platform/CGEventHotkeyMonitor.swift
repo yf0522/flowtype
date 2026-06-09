@@ -97,6 +97,10 @@ final class CGEventHotkeyMonitor: @unchecked Sendable {
             }
         case .keyDown, .keyUp:
             let keyCode = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
+            // 回车(36) 按下 → 发 confirm（录音中才会被状态机采纳，否则忽略）
+            if type == .keyDown && keyCode == 36 {
+                DispatchQueue.main.async { [weak self] in self?.onEvent?(.confirm) }
+            }
             let mods = event.flags.rawValue & (CGEventFlags.maskCommand.rawValue |
                                                CGEventFlags.maskAlternate.rawValue |
                                                CGEventFlags.maskShift.rawValue |

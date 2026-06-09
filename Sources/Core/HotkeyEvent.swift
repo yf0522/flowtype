@@ -20,6 +20,7 @@ enum HotkeyEvent: Equatable {
     case pushToTalkDown
     case pushToTalkUp
     case toggle
+    case confirm   // 回车：录音中直接确定插入
 }
 
 struct HotkeyConfig: Equatable, Codable {

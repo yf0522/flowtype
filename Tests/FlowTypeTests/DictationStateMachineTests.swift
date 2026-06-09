@@ -49,6 +49,21 @@ final class DictationStateMachineTests: XCTestCase {
         XCTAssertEqual(m.state, .idle)
     }
 
+    // 回车：持续录音中确定插入
+    func test_confirm_while_latched_inserts() {
+        var m = DictationStateMachine()
+        _ = m.handle(.toggle)
+        XCTAssertEqual(m.handle(.confirm), .stopAndInsert)
+        XCTAssertEqual(m.state, .inserting)
+    }
+
+    // 回车：空闲时无效
+    func test_confirm_while_idle_is_noop() {
+        var m = DictationStateMachine()
+        XCTAssertEqual(m.handle(.confirm), .none)
+        XCTAssertEqual(m.state, .idle)
+    }
+
     // 空闲时松开是 no-op
     func test_pressUp_while_idle_is_noop() {
         var m = DictationStateMachine()

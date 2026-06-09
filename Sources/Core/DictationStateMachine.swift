@@ -10,6 +10,7 @@ enum DictationInput: Equatable {
     case pressUp(quickTap: Bool)
     case toggle
     case cancel
+    case confirm   // 回车：录音中直接插入
 }
 
 /// 听写状态机（纯逻辑）。支持三种触发风格：
@@ -44,6 +45,11 @@ struct DictationStateMachine {
 
         // 持续录音中再按（推键第二次按下 / 切换键再按一下）→ 插入
         case (.latched, .pressDown), (.latched, .toggle):
+            state = .inserting
+            return .stopAndInsert
+
+        // 回车：录音中（长按或持续）直接插入
+        case (.holding, .confirm), (.latched, .confirm):
             state = .inserting
             return .stopAndInsert
 

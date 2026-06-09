@@ -13,7 +13,12 @@ final class AppleSpeechRecognizer: NSObject, SpeechRecognizing, @unchecked Senda
     private var recognizer: SFSpeechRecognizer?
     private var request: SFSpeechAudioBufferRecognitionRequest?
     private var task: SFSpeechRecognitionTask?
-    private var lastText = ""
+    /// 已定稿的段落（停顿后不清空，持续累积）。
+    private var committed = ""
+    /// 当前段落的实时部分结果。
+    private var partial = ""
+
+    private var displayText: String { committed + partial }
 
     func start(locale: String) throws {
         guard let rec = SFSpeechRecognizer(locale: Locale(identifier: locale)) else {
@@ -22,12 +27,8 @@ final class AppleSpeechRecognizer: NSObject, SpeechRecognizing, @unchecked Senda
         guard rec.supportsOnDeviceRecognition else { throw SpeechError.onDeviceUnavailable }
         rec.defaultTaskHint = .dictation
         recognizer = rec
-        lastText = ""
-
-        let req = SFSpeechAudioBufferRecognitionRequest()
-        req.requiresOnDeviceRecognition = true
-        req.shouldReportPartialResults = true
-        request = req
+        committed = ""
+        partial = ""
 
         // 配置采集
         session.beginConfiguration()
@@ -42,16 +43,34 @@ final class AppleSpeechRecognizer: NSObject, SpeechRecognizing, @unchecked Senda
         if session.canAddOutput(audioOutput) { session.addOutput(audioOutput) }
         session.commitConfiguration()
 
+        startTask()
+        session.startRunning()
+    }
+
+    /// 创建一次识别任务。段落定稿(isFinal)时把结果并入 committed 并重启任务，
+    /// 这样说话中的停顿不会清空之前已说的内容。
+    private func startTask() {
+        guard let rec = recognizer else { return }
+        let req = SFSpeechAudioBufferRecognitionRequest()
+        req.requiresOnDeviceRecognition = true
+        req.shouldReportPartialResults = true
+        if #available(macOS 13.0, *) { req.addsPunctuation = true } // 自动加标点
+        request = req
+
         task = rec.recognitionTask(with: req) { [weak self] result, error in
             guard let self else { return }
             if let result {
-                self.lastText = result.bestTranscription.formattedString
-                self.onTranscript?(self.lastText, result.isFinal)
+                self.partial = result.bestTranscription.formattedString
+                self.onTranscript?(self.displayText, false)
+                if result.isFinal {
+                    // 段落定稿：并入已提交文本，重启任务继续听后续
+                    self.committed = self.displayText
+                    self.partial = ""
+                    self.startTask()
+                }
             }
             if error != nil { /* 交由 stop 收尾 */ }
         }
-
-        session.startRunning()
     }
 
     func stop() -> String {
@@ -61,7 +80,9 @@ final class AppleSpeechRecognizer: NSObject, SpeechRecognizing, @unchecked Senda
         request?.endAudio()
         task?.finish()
         request = nil; task = nil
-        return lastText
+        let final = displayText
+        committed = ""; partial = ""
+        return final
     }
 }
 
