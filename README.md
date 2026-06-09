@@ -57,8 +57,6 @@ Sources/
 └── App/         入口 · 协调器 · AppDelegate
 ```
 
-设计/实现文档见 `docs/superpowers/`。
-
 ## 已知限制
 
 - 触发键默认用**右** Option（左 Option 留给 ⌥Space 等组合键，避免冲突）。
