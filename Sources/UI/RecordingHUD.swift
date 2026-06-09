@@ -10,11 +10,20 @@ struct RecordingHUD: View {
                 .frame(width: 30, height: 30)
                 .overlay(Image(systemName: iconName).font(.system(size: 13)).foregroundStyle(.white))
             WaveformView(level: vm.level)
-                .frame(width: 44, height: 22)
+                .frame(width: 40, height: 22)
             Text(vm.transcript.isEmpty ? "聆听中…" : vm.transcript)
                 .lineLimit(1).truncationMode(.head)
                 .foregroundStyle(.white)
-                .frame(maxWidth: 220, alignment: .leading)
+                .frame(maxWidth: 200, alignment: .leading)
+            if vm.phase == .recording {
+                Button(action: { vm.onDiscard() }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 20))
+                        .foregroundStyle(.white.opacity(0.55))
+                }
+                .buttonStyle(.plain)
+                .help("丢弃")
+            }
         }
         .padding(.horizontal, 16).padding(.vertical, 11)
         .background(.black.opacity(0.85), in: Capsule())

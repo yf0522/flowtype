@@ -15,7 +15,7 @@ struct AppSettings: Equatable, Codable {
     var forceOnDevice: Bool
 
     static let `default` = AppSettings(
-        hotkeys: HotkeyConfig(pushToTalkKey: .fn,
+        hotkeys: HotkeyConfig(pushToTalkKey: .modifierHold(keyCode: 61), // 右 Option 长按
                               toggleKey: .combo(keyCode: 49, modifiers: 0x80000)), // ⌥Space
         locale: "zh-CN",
         insertionMethod: .smartPaste,
@@ -28,7 +28,7 @@ struct AppSettings: Equatable, Codable {
 /// 把 AppSettings 以 JSON 存进 UserDefaults。
 final class SettingsStore {
     private let defaults: UserDefaults
-    private let key = "flowtype.settings.v1"
+    private let key = "flowtype.settings.v2" // v2: 默认推键改为右 Option
     private(set) var settings: AppSettings
 
     init(defaults: UserDefaults = .standard) {

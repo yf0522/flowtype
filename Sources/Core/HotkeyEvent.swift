@@ -4,6 +4,8 @@ import Foundation
 enum KeyIdentifier: Equatable, Hashable, Codable {
     case fn
     case combo(keyCode: UInt16, modifiers: UInt)
+    /// 纯修饰键长按（如右 Option），通过 flagsChanged + keyCode 识别。
+    case modifierHold(keyCode: UInt16)
 }
 
 /// 归一化后的原始键事件（由平台层 CGEventTap 翻译而来）。

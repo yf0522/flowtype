@@ -26,7 +26,7 @@ struct SettingsView: View {
                 Text("English (US)").tag("en-US")
             }
             Toggle("开机自启动（即将推出）", isOn: $settings.launchAtLogin).disabled(true)
-            Text("按住说话：fn（地球键）  ·  切换式：⌥Space").foregroundStyle(.secondary).font(.caption)
+            Text("按住说话：右 Option   ·   切换式：⌥Space").foregroundStyle(.secondary).font(.caption)
         }.padding()
     }
 

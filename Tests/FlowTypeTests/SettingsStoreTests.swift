@@ -29,7 +29,7 @@ final class SettingsStoreTests: XCTestCase {
     }
 
     func test_default_hotkeys() {
-        XCTAssertEqual(AppSettings.default.hotkeys.pushToTalkKey, .fn)
+        XCTAssertEqual(AppSettings.default.hotkeys.pushToTalkKey, .modifierHold(keyCode: 61))
         XCTAssertEqual(AppSettings.default.locale, "zh-CN")
         XCTAssertEqual(AppSettings.default.insertionMethod, .smartPaste)
     }
