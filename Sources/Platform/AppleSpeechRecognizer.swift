@@ -17,6 +17,8 @@ final class AppleSpeechRecognizer: NSObject, SpeechRecognizing, @unchecked Senda
     private var committed = ""
     /// 当前段落的实时部分结果。
     private var partial = ""
+    /// 上一条识别结果的时间（用于区分"停顿换句"与"中途抖动"）。
+    private var lastResultAt: Date?
 
     private var displayText: String { committed + partial }
 
@@ -29,6 +31,7 @@ final class AppleSpeechRecognizer: NSObject, SpeechRecognizing, @unchecked Senda
         recognizer = rec
         committed = ""
         partial = ""
+        lastResultAt = nil
 
         // 配置采集
         session.beginConfiguration()
@@ -60,16 +63,42 @@ final class AppleSpeechRecognizer: NSObject, SpeechRecognizing, @unchecked Senda
         task = rec.recognitionTask(with: req) { [weak self] result, error in
             guard let self else { return }
             if let result {
-                self.partial = result.bestTranscription.formattedString
+                let new = result.bestTranscription.formattedString
+                // 关键修复：on-device 识别器换句时会把 partial 重置成新语段(不发 isFinal)。
+                // 信号：新文本既不是上一段的延续，且长度骤降(<上一段一半)=语段重置 → 提交上一段，避免覆盖。
+                // 中途修正(等长/变长)不会触发，避免切碎。
+                if !self.partial.isEmpty,
+                   !Self.isContinuation(prev: self.partial, new: new),
+                   new.count < self.partial.count / 2 {
+                    self.commitSegment(self.partial)
+                }
+                self.partial = new
+                flog("STT: isFinal=\(result.isFinal) partial=「\(new)」committed=「\(self.committed)」")
                 self.onTranscript?(self.displayText, false)
                 if result.isFinal {
-                    // 段落定稿：并入已提交文本，重启任务继续听后续
-                    self.committed = self.displayText
+                    self.commitSegment(self.partial)
                     self.partial = ""
                     self.startTask()
                 }
             }
-            if error != nil { /* 交由 stop 收尾 */ }
+            if let error { flog("STT: error=\(error)") }
+        }
+    }
+
+    /// 判断 new 是否是 prev 的延续（增长/小幅修正），而非全新语段。
+    private static func isContinuation(prev: String, new: String) -> Bool {
+        if new.hasPrefix(prev) || prev.hasPrefix(new) { return true }
+        return new.commonPrefix(with: prev).count >= max(1, prev.count / 2)
+    }
+
+    /// 把一段定稿文本并入 committed。段尾已有标点则不再加逗号，过短碎片(<2字)丢弃。
+    private func commitSegment(_ seg: String) {
+        let s = seg.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard s.count >= 2 else { return }
+        if let last = s.last, "。！？，、；：".contains(last) {
+            committed += s
+        } else {
+            committed += s + "，"
         }
     }
 
@@ -80,9 +109,13 @@ final class AppleSpeechRecognizer: NSObject, SpeechRecognizing, @unchecked Senda
         request?.endAudio()
         task?.finish()
         request = nil; task = nil
-        let final = displayText
+        var text = committed + partial.trimmingCharacters(in: .whitespacesAndNewlines)
         committed = ""; partial = ""
-        return final
+        // 末尾标点收尾：去掉尾逗号，无句末标点则补句号
+        if text.hasSuffix("，") { text.removeLast() }
+        if let last = text.last, !"。！？，".contains(last) { text += "。" }
+        flog("STT: stop() 最终文本=「\(text)」")
+        return text
     }
 }
 
